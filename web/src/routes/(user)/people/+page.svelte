@@ -30,7 +30,7 @@
     updatePerson,
     type PersonResponseDto,
   } from '@immich/sdk';
-  import { Button, Text } from '@immich/ui';
+  import { Button } from '@immich/ui';
   import { mdiAccountOff, mdiEyeOutline } from '@mdi/js';
   import { onMount } from 'svelte';
   import { t } from 'svelte-i18n';
@@ -222,6 +222,25 @@
     }
   };
 
+  const handleToggleFavorite = async (detail: PersonResponseDto) => {
+    try {
+      const updatedPerson = await updatePerson({
+        id: detail.id,
+        personUpdateDto: { isFavorite: !detail.isFavorite },
+      });
+
+      const index = people.findIndex((person) => person.id === detail.id);
+      people[index] = updatedPerson;
+
+      notificationController.show({
+        message: updatedPerson.isFavorite ? $t('added_to_favorites') : $t('removed_from_favorites'),
+        type: NotificationType.Info,
+      });
+    } catch (error) {
+      handleError(error, $t('errors.unable_to_add_remove_favorites', { values: { favorite: detail.isFavorite } }));
+    }
+  };
+
   const handleMergePeople = async (detail: PersonResponseDto) => {
     await goto(
       `${AppRoute.PEOPLE}/${detail.id}?${QueryParameter.ACTION}=${ActionQueryParameterValue.MERGE}&${QueryParameter.PREVIOUS_ROUTE}=${AppRoute.PEOPLE}`,
@@ -392,10 +411,13 @@
             />
           </div>
         </div>
-        <Button onclick={() => (selectHidden = !selectHidden)} size="small" variant="ghost" color="secondary">
-          <Icon path={mdiEyeOutline} />
-          <Text>{$t('show_and_hide_people')}</Text>
-        </Button>
+        <Button
+          leadingIcon={mdiEyeOutline}
+          onclick={() => (selectHidden = !selectHidden)}
+          size="small"
+          variant="ghost"
+          color="secondary">{$t('show_and_hide_people')}</Button
+        >
       </div>
     {/if}
   {/snippet}
@@ -410,6 +432,7 @@
           onSetBirthDate={() => handleSetBirthDate(person)}
           onMergePeople={() => handleMergePeople(person)}
           onHidePerson={() => handleHidePerson(person)}
+          onToggleFavorite={() => handleToggleFavorite(person)}
         />
       {/snippet}
     </PeopleInfiniteScroll>
